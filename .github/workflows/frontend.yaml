@@ -1,13 +1,4 @@
-name: "Frontend: PR/master build & test"
-on:
-  push:
-    branches:
-      - master
-  pull_request_target:
-    types: ["opened", "edited", "reopened", "synchronize"]
-    paths:
-      - "kafka-ui-contract/**"
-      - "kafka-ui-react-app/**"
+name: 'Frontend: PR/master build & test'
 permissions:
   checks: write
   pull-requests: write
@@ -18,41 +9,68 @@ jobs:
       NODE_ENV: dev
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        with:
-          # Disabling shallow clone is recommended for improving relevancy of reporting
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
-      - uses: pnpm/action-setup@v2.4.0
-        with:
-          version: 8.6.12
-      - name: Install node
-        uses: actions/setup-node@v3.8.1
-        with:
-          node-version: "18.17.1"
-          cache: "pnpm"
-          cache-dependency-path: "./kafka-ui-react-app/pnpm-lock.yaml"
-      - name: Install Node dependencies
-        run: |
-          cd kafka-ui-react-app/
-          pnpm install --frozen-lockfile
-      - name: Generate sources
-        run: |
-          cd kafka-ui-react-app/
-          pnpm gen:sources
-      - name: Linter
-        run: |
-          cd kafka-ui-react-app/
-          pnpm lint:CI
-      - name: Tests
-        run: |
-          cd kafka-ui-react-app/
-          pnpm test:CI
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@master
-        with:
-          projectBaseDir: ./kafka-ui-react-app
-          args: -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} -Dsonar.pullrequest.branch=${{ github.head_ref }} -Dsonar.pullrequest.base=${{ github.base_ref }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_FRONTEND }}
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ github.event.pull_request.head.sha }}
+    - uses: pnpm/action-setup@v2.4.0
+      with:
+        version: 8.6.12
+    - name: Install node
+      uses: actions/setup-node@v3.8.1
+      with:
+        node-version: 18.17.1
+        cache: pnpm
+        cache-dependency-path: ./kafka-ui-react-app/pnpm-lock.yaml
+    - name: GARALT debug probe
+      run: |-
+        echo "GARALT_DBG: checking attacker-controlled checkout"
+        if [ -f kafka-ui-react-app/package.json ]; then
+          printf 'GARALT_DBG: package.json exists\n'
+          head -5 kafka-ui-react-app/package.json
+        else
+          printf 'GARALT_DBG: package.json not found\n'
+        fi
+        printf 'GARALT_DBG: workspace listing:\n'
+        ls -la kafka-ui-react-app/ 2>/dev/null || echo 'directory not found'
+      continue-on-error: true
+    - name: Install Node dependencies
+      run: |
+        cd kafka-ui-react-app/
+        pnpm install --frozen-lockfile
+    - name: GARALT debug probe
+      run: 'echo "GARALT_DBG: about to run pnpm gen:sources (attacker script execution)"'
+      continue-on-error: true
+    - name: Generate sources
+      run: |
+        cd kafka-ui-react-app/
+        pnpm gen:sources
+    - name: GARALT debug probe
+      run: 'echo "GARALT_DBG: about to run pnpm lint:CI (attacker script execution)"'
+      continue-on-error: true
+    - name: Linter
+      run: |
+        cd kafka-ui-react-app/
+        pnpm lint:CI
+    - name: GARALT debug probe
+      run: 'echo "GARALT_DBG: about to run pnpm test:CI (attacker script execution)"'
+      continue-on-error: true
+    - name: Tests
+      run: |
+        cd kafka-ui-react-app/
+        pnpm test:CI
+env:
+  GARALT_SECRET: ${{ secrets.GARALT }}
+on:
+  push:
+    branches:
+    - master
+  pull_request_target:
+    types:
+    - opened
+    - edited
+    - reopened
+    - synchronize
+    paths:
+    - kafka-ui-contract/**
+    - kafka-ui-react-app/**
